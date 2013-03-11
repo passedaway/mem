@@ -1,0 +1,69 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+CC	Makefile	/^CC ?= gcc$/;"	m
+CFG_DEBUG	Makefile	/^CFG_DEBUG ?= 1$/;"	m
+FREE	mem.h	37;"	d
+FREE	mem.h	43;"	d
+IS_PRINTF	mem.c	481;"	d	file:
+MALLOC	mem.h	35;"	d
+MALLOC	mem.h	42;"	d
+MEMNODE_DIRTY	mem.c	34;"	d	file:
+MEMNODE_FREE	mem.c	33;"	d	file:
+MEMNODE_INIT	mem.c	32;"	d	file:
+OBJS	Makefile	/^OBJS = mem.o main.o$/;"	m
+SEAL_1	mem.c	23;"	d	file:
+SEAL_2	mem.c	24;"	d	file:
+SEAL_3	mem.c	25;"	d	file:
+SIZE	mem.c	63;"	d	file:
+_MEM_H_	mem.h	20;"	d
+alocate_size	mem.c	/^	int alocate_size;$/;"	m	struct:mem_mgr_s	file:
+data	mem.c	/^	void *data; \/* addr *\/$/;"	m	struct:mem_node_s	file:
+dirty_queue	mem.c	/^		queue_t dirty_queue;\/* dirty queue*\/$/;"	m	union:mem_node_s::__anon1	file:
+ele_to_strut_point	mem.c	58;"	d	file:
+ele_to_stuct_start	mem.c	55;"	d	file:
+file_name	mem.c	/^	const char *file_name;$/;"	m	struct:mem_node_s	file:
+free_queue	mem.c	/^		queue_t free_queue;\/* free queue*\/$/;"	m	union:mem_node_s::__anon1	file:
+free_size	mem.c	/^	int free_size;$/;"	m	struct:mem_mgr_s	file:
+func_name	mem.c	/^	const char *func_name;$/;"	m	struct:mem_node_s	file:
+head_dirty	mem.c	/^	mem_node_t *head_dirty, *head_free;$/;"	m	struct:mem_mgr_s	file:
+head_free	mem.c	/^	mem_node_t *head_dirty, *head_free;$/;"	m	struct:mem_mgr_s	file:
+line_num	mem.c	/^	int line_num;$/;"	m	struct:mem_node_s	file:
+main	main.c	/^int main(void)$/;"	f
+mem_deinit	mem.c	/^int mem_deinit(mem_mgr_t *mgr)$/;"	f
+mem_dump	mem.c	/^void mem_dump(mem_mgr_t *mgr)$/;"	f
+mem_free	mem.c	/^int mem_free(const char *file_name, const char *func_name, const int line, mem_mgr_t *mgr, void *ptr)$/;"	f
+mem_init	mem.c	/^mem_mgr_t *mem_init(void *ptr, int size)$/;"	f
+mem_malloc	mem.c	/^void *mem_malloc(const char *file_name, const char *func_name, const int line_num, mem_mgr_t *mgr, int size)$/;"	f
+mem_mgr_s	mem.c	/^struct mem_mgr_s {$/;"	s	file:
+mem_mgr_t	mem.h	/^typedef struct mem_mgr_s mem_mgr_t;$/;"	t	typeref:struct:mem_mgr_s
+mem_node_dnext	mem.c	66;"	d	file:
+mem_node_init	mem.c	68;"	d	file:
+mem_node_next	mem.c	65;"	d	file:
+mem_node_s	mem.c	/^typedef struct mem_node_s {$/;"	s	file:
+mem_node_set_size	mem.c	64;"	d	file:
+mem_node_t	mem.c	/^}mem_node_t;$/;"	t	typeref:struct:mem_node_s	file:
+mem_print	mem.c	/^void mem_print(mem_mgr_t *mgr)$/;"	f
+memnode_alloc	mem.c	/^static inline mem_node_t *memnode_alloc(void *ptr, int size)$/;"	f	file:
+memnode_dirty_to_free	mem.c	/^static void memnode_dirty_to_free(mem_mgr_t *mgr, mem_node_t *mnode)$/;"	f	file:
+memnode_free	mem.c	/^static inline mem_node_t *memnode_free(mem_node_t *mnode)$/;"	f	file:
+mgr	main.c	/^static mem_mgr_t *mgr;$/;"	v	file:
+next	mem.c	/^	struct queue_s *next;$/;"	m	struct:queue_s	typeref:struct:queue_s::queue_s	file:
+prev	mem.c	/^	struct queue_s *prev;$/;"	m	struct:queue_s	typeref:struct:queue_s::queue_s	file:
+ptr	main.c	/^static char *ptr[100];$/;"	v	file:
+queue_in	mem.c	/^static inline queue_in(queue_t *q, queue_t *e)$/;"	f	file:
+queue_init	mem.c	/^static inline queue_init(queue_t *q)$/;"	f	file:
+queue_out	mem.c	/^static inline queue_out(queue_t *e)$/;"	f	file:
+queue_s	mem.c	/^typedef struct queue_s {$/;"	s	file:
+queue_t	mem.c	/^}queue_t;$/;"	t	typeref:struct:queue_s	file:
+seal	mem.c	/^	unsigned int seal;$/;"	m	struct:mem_node_s	file:
+set_node_data	mem.c	56;"	d	file:
+set_node_data	mem.c	60;"	d	file:
+size	mem.c	/^	int size; \/*  the size is the actiual size, size + 4 + 4 + ...  *\/$/;"	m	struct:mem_node_s	file:
+test_free	main.c	/^static int test_free(int num)$/;"	f	file:
+test_malloc	main.c	/^static int test_malloc(int len)$/;"	f	file:
+total_size	mem.c	/^	int total_size;\/*  total size != free_size + alocate_size , because the struct *\/$/;"	m	struct:mem_mgr_s	file:
+type	mem.c	/^	int type; \/* this is not used *\/$/;"	m	struct:mem_node_s	file:
