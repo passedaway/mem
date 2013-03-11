@@ -14,7 +14,7 @@ all:$(OBJS)
 	@$(CC) $^ -o test
 
 $(filter %.o,$(OBJS)):%.o:%.c
-	@echo "[ CC $^ --> $@	]"
+	@echo "[ CC $^	--> $@	]"
 	@$(CC) -c $(CFLAGS) $^ -o $@
 
 .PHONY:clean

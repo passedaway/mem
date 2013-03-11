@@ -8,7 +8,7 @@ CC	Makefile	/^CC ?= gcc$/;"	m
 CFG_DEBUG	Makefile	/^CFG_DEBUG ?= 1$/;"	m
 FREE	mem.h	37;"	d
 FREE	mem.h	43;"	d
-IS_PRINTF	mem.c	481;"	d	file:
+IS_PRINTF	mem.c	482;"	d	file:
 MALLOC	mem.h	35;"	d
 MALLOC	mem.h	42;"	d
 MEMNODE_DIRTY	mem.c	34;"	d	file:
