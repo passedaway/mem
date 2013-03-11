@@ -87,11 +87,11 @@ int main(void)
 	//	mem_dump(mgr);
 	}
 
-	FREE(mgr, ptr[0]);
+	FREE(mgr, ptr[1]);
 	mem_print(mgr);
 	getchar();
 
-	FREE(mgr, ptr[1]);
+	FREE(mgr, ptr[3]);
 	mem_print(mgr);
 	getchar();
 
