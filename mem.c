@@ -254,7 +254,7 @@ OUT:
 	return;
 }
 
-/* golable function */
+/* global function */
 mem_mgr_t *mem_init(void *ptr, int size)
 {
 	mem_mgr_t *mgr = NULL;
