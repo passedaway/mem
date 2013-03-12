@@ -6,7 +6,7 @@ CC ?= gcc
 OBJS = mem.o main.o
 
 ifeq ($(strip $(CFG_DEBUG)),1)
-	CFLAGS += -DDEBUG -g
+	CFLAGS += -DDEBUG -g -Wall
 endif
 
 all:$(OBJS)

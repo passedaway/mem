@@ -70,13 +70,13 @@ struct mem_mgr_s {
 	mem_node_t *head_dirty, *head_free;
 };
 
-static inline queue_init(queue_t *q)
+static inline void queue_init(queue_t *q)
 {
 	q->next = q;
 	q->prev = q;
 }
 
-static inline queue_in(queue_t *q, queue_t *e)
+static inline void queue_in(queue_t *q, queue_t *e)
 {
 	e->prev = q->prev;
 	q->prev->next = e;
@@ -84,7 +84,7 @@ static inline queue_in(queue_t *q, queue_t *e)
 	e->next = q;
 }
 
-static inline queue_out(queue_t *e)
+static inline void queue_out(queue_t *e)
 {
 	e->prev->next = e->next;
 	e->next->prev = e->prev;
@@ -102,7 +102,7 @@ static inline mem_node_t *memnode_alloc(void *ptr, int size)
 	return mnode;
 }
 
-static inline mem_node_t *memnode_free(mem_node_t *mnode)
+static inline void memnode_free(mem_node_t *mnode)
 {
 	mnode->seal = SEAL_1;
 	mnode->type = MEMNODE_FREE;
@@ -133,7 +133,7 @@ static void memnode_dirty_to_free(mem_mgr_t *mgr, mem_node_t *mnode)
 	int result_tail,  /*  result_tail indicate will combine in other's tail */
 		result_head; /* result_head indicate will combine in other's head */
 	mem_node_t *tmpm, *dstm; 
-	queue_t *q, *head, *tmpq;
+	queue_t *q, *head;
 
 	/* move mnode out of dirty */
 	if( mgr->head_dirty == mnode )
@@ -244,7 +244,6 @@ COMPRESS:
 		queue_init(&dstm->free_queue);
 	}
 
-OUT:
 	return;
 }
 
@@ -405,33 +404,29 @@ int mem_free(mem_mgr_t *mgr, void *ptr)
 #endif
 	//printf("ptr=%p mnode = %p\n", ptr, mnode);
 	/* check if in the dirty queue */
-	{
-		/* error occured */
-		if( mgr->head_dirty == NULL )
-			return -1;
-
+	/* error occured */
+	if( mgr->head_dirty == NULL )
+		return -1;
+	else{
+		queue_t *q;
+		queue_t *head = &mgr->head_dirty->dirty_queue;
+		q = head;
+		while( q->next != head )
 		{
-			queue_t *q;
-			queue_t *head = &mgr->head_dirty->dirty_queue;
-			q = head;
-			while( q->next != head )
+			if( (mem_node_t*)q == mnode )
 			{
-				if( (mem_node_t*)q == mnode )
-				{
-					break;
-				}
-
-				q = q->next;
+				break;
 			}
 
-			if( (mem_node_t *)q != mnode )
-				return -1;
+			q = q->next;
 		}
+
+		if( (mem_node_t *)q != mnode )
+			return -1;
 	}
 
 	/* move queue from dirty_queue to free_queue  */
 	memnode_dirty_to_free(mgr, mnode);
-OUT:
 	return 0;
 }
 
