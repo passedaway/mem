@@ -52,22 +52,16 @@ typedef struct mem_node_s {
 }mem_node_t;
 
 #if 1
-#define ele_to_stuct_start(m, s) (int)&(((s*)0)->m)
-#define set_node_data(mnode)	(mnode)->data =  (unsigned char *)(mnode) + ele_to_stuct_start(data, mem_node_t) + 4 
+#define ele_to_struct_start(m, s) (int)&(((s*)0)->m)
+#define set_node_data(mnode)	(mnode)->data =  (unsigned char *)(mnode) + ele_to_struct_start(data, mem_node_t) + 4 
 
-#define ele_to_strut_point(d, m, s) (s*)((unsigned char *)d - ele_to_struct_start(m,s))
+#define data_to_memnode(ptr)	(mem_node_t*)((unsigned char *)(ptr) - 4 - ele_to_struct_start(data, mem_node_t))
+
 #else
 #define set_node_data(mnode)	(mnode)->data =  (unsigned char *)(mnode) + sizeof(mem_node_t)
 #endif
 
 #define SIZE(size)	((size+3) & (~0x3))
-#define mem_node_set_size(a, size) (a)->size = SIZE(size) + 16 
-#define mem_node_next(a) (mem_node_s *)( (a)->start + (a)->size ) 
-#define mem_node_dnext(a) (mem_node_s *)( (a)->d_next ) 
-
-#define mem_node_init(a, ptr, size) (a)->start = ptr; \
-									mem_node_set_size(a, size); \
-									
 
 struct mem_mgr_s {
 	int total_size;/*  total size != free_size + alocate_size , because the struct */
@@ -294,9 +288,12 @@ int mem_deinit(mem_mgr_t *mgr)
 		do{
 			tmp = (mem_node_t*)q;
 #ifdef DEBUG
-			printf("MEM_LEAK AT:[%s][%s][%d] size=%d (0x%x) ptr=%p\n", tmp->file_name, tmp->func_name, tmp->line_num, tmp->size, tmp->size, tmp->data );
+			printf("MEM_LEAK AT:[%s][%s][%d] size=%d (0x%x) ptr=%p\n", 
+					tmp->file_name, tmp->func_name, tmp->line_num, 
+					tmp->size, tmp->size, tmp->data );
 #else
-			printf("MEM_LEAK AT:size=%d (0x%x) ptr=%p\n", tmp->size, tmp->size, tmp->data );
+			printf("MEM_LEAK AT:size=%d (0x%x) ptr=%p\n", 
+					tmp->size, tmp->size, tmp->data );
 #endif
 			q = q->next;
 		}while( q != head );
@@ -397,9 +394,12 @@ int mem_free(mem_mgr_t *mgr, void *ptr)
 #endif
 {
 	/* get the memnode */
-#if 0
-	mem_node_t *mnode = ele_to_strut_point(ptr, data, mem_node_t);
-	mem_node_t *mnode = (mem_node_t*)((unsigned char*)ptr - (int)&(((mem_node_t*)0)->data) );
+#if 1
+	mem_node_t *mnode = data_to_memnode(ptr);
+#elif 0
+	/* 
+	mem_node_t *mnode = (mem_node_t*)((unsigned char*)ptr - (int)&(((mem_node_t*)0)->data) - 4 );
+	*/
 #else
 	mem_node_t *mnode = (mem_node_t*)((unsigned char*)ptr - sizeof(mem_node_t));
 #endif
