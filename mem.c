@@ -52,22 +52,16 @@ typedef struct mem_node_s {
 }mem_node_t;
 
 #if 1
-#define ele_to_stuct_start(m, s) (int)&(((s*)0)->m)
-#define set_node_data(mnode)	(mnode)->data =  (unsigned char *)(mnode) + ele_to_stuct_start(data, mem_node_t) + 4 
+#define ele_to_struct_start(m, s) (int)&(((s*)0)->m)
+#define set_node_data(mnode)	(mnode)->data =  (unsigned char *)(mnode) + ele_to_struct_start(data, mem_node_t) + 4 
 
-#define ele_to_strut_point(d, m, s) (s*)((unsigned char *)d - ele_to_struct_start(m,s))
+#define data_to_memnode(ptr)	(mem_node_t*)((unsigned char *)(ptr) - 4 - ele_to_struct_start(data, mem_node_t))
+
 #else
 #define set_node_data(mnode)	(mnode)->data =  (unsigned char *)(mnode) + sizeof(mem_node_t)
 #endif
 
 #define SIZE(size)	((size+3) & (~0x3))
-#define mem_node_set_size(a, size) (a)->size = SIZE(size) + 16 
-#define mem_node_next(a) (mem_node_s *)( (a)->start + (a)->size ) 
-#define mem_node_dnext(a) (mem_node_s *)( (a)->d_next ) 
-
-#define mem_node_init(a, ptr, size) (a)->start = ptr; \
-									mem_node_set_size(a, size); \
-									
 
 struct mem_mgr_s {
 	int total_size;/*  total size != free_size + alocate_size , because the struct */
@@ -76,13 +70,13 @@ struct mem_mgr_s {
 	mem_node_t *head_dirty, *head_free;
 };
 
-static inline queue_init(queue_t *q)
+static inline void queue_init(queue_t *q)
 {
 	q->next = q;
 	q->prev = q;
 }
 
-static inline queue_in(queue_t *q, queue_t *e)
+static inline void queue_in(queue_t *q, queue_t *e)
 {
 	e->prev = q->prev;
 	q->prev->next = e;
@@ -90,7 +84,7 @@ static inline queue_in(queue_t *q, queue_t *e)
 	e->next = q;
 }
 
-static inline queue_out(queue_t *e)
+static inline void queue_out(queue_t *e)
 {
 	e->prev->next = e->next;
 	e->next->prev = e->prev;
@@ -108,10 +102,27 @@ static inline mem_node_t *memnode_alloc(void *ptr, int size)
 	return mnode;
 }
 
-static inline mem_node_t *memnode_free(mem_node_t *mnode)
+static inline void memnode_free(mem_node_t *mnode)
 {
 	mnode->seal = SEAL_1;
 	mnode->type = MEMNODE_FREE;
+}
+
+static inline int outof_free_queue(mem_mgr_t *mgr, mem_node_t *outq)
+{
+	if( outq == mgr->head_free )
+	{
+		if( mgr->head_free->free_queue.next == (queue_t*)mgr->head_free )
+		{
+			mgr->head_free = NULL;
+			return 1;
+		}
+		else
+			mgr->head_free = (mem_node_t*)outq->free_queue.next;
+	}
+	queue_out(&outq->free_queue);
+
+	return 0;
 }
 
 static void memnode_dirty_to_free(mem_mgr_t *mgr, mem_node_t *mnode)
@@ -121,8 +132,8 @@ static void memnode_dirty_to_free(mem_mgr_t *mgr, mem_node_t *mnode)
 	/* ? can combine with some other item */
 	int result_tail,  /*  result_tail indicate will combine in other's tail */
 		result_head; /* result_head indicate will combine in other's head */
-	mem_node_t *tmpm; 
-	queue_t *q, *head, *tmpq;
+	mem_node_t *tmpm, *dstm; 
+	queue_t *q, *head;
 
 	/* move mnode out of dirty */
 	if( mgr->head_dirty == mnode )
@@ -151,9 +162,13 @@ static void memnode_dirty_to_free(mem_mgr_t *mgr, mem_node_t *mnode)
 		return;
 	}
 
-	result_tail = (int)mnode;
-	result_head = (int)mnode->data + mnode->size;
-	printf("result_tail = 0x%x result_head = 0x%x\n", result_tail, result_head);
+	dstm = mnode;
+
+	/* if the node is modifyed, make it out of queue */
+COMPRESS:
+	result_tail = (int)dstm;
+	result_head = (int)dstm->data + dstm->size;
+	printf("result_tail = 0x%x result_head = 0x%x \n", result_tail, result_head);
 
 	head = &mgr->head_free->free_queue;
 	q = head;
@@ -163,70 +178,76 @@ static void memnode_dirty_to_free(mem_mgr_t *mgr, mem_node_t *mnode)
 		if( (tmpm->size + (int)tmpm->data) == result_tail )
 		{ 
 			/* combine (other's tail) */
-			printf("combine other's tail ptr=%p size=%d\n", tmpm->data, tmpm->size);
-			tmpm->size += ( mnode->size + sizeof(mem_node_t) );
+			printf("combine to other's tail ptr=%p size=%d\n", tmpm->data, tmpm->size);
+			tmpm->size += ( dstm->size + sizeof(mem_node_t) );
 			mgr->free_size += sizeof(mem_node_t);
-			goto OUT;
+			dstm = tmpm;
+			if( outof_free_queue(mgr, tmpm) )
+				break;
+			goto COMPRESS;
 		}
 
 		if( (int)tmpm == result_head )
 		{
 			/* combine (other's head) */
-			printf("combine other's head ptr=%p size=%d\n", tmpm->data, tmpm->size);
-			mnode->size += (tmpm->size + sizeof(mem_node_t));
+			printf("combine to other's head ptr=%p size=%d\n", tmpm->data, tmpm->size);
+			dstm->size += (tmpm->size + sizeof(mem_node_t));
 			mgr->free_size += sizeof(mem_node_t);
 
-#if 0
-			queue_out(&tmp->free_queue);
-			queue_in(&tmp->free_queue, (queue_t*)mnode);
-
-			goto OUT;
-#else
-			queue_out(&tmpm->free_queue);
-			if( &tmpm->free_queue == &mgr->head_free->free_queue )
-			{
-				if( mgr->head_free->free_queue.next == mgr->head_free->free_queue.prev )
-					mgr->head_free = NULL;
-				else
-					mgr->head_free = (mem_node_t*)tmpm->free_queue.next;
-			}
-			break;
-#endif
+			if( outof_free_queue(mgr, tmpm) )
+				break;
+			goto COMPRESS;
 		}
 
 		q = q->next;
 	}while(q != head );
 
-	/* in queue: first is the min, the last is the max */
+	/* now, it's time to in queue
+	 * in queue: makesure first is the min, the last is the max 
+	 */
+	/* just in queue, will adjust the queue after */
 	if ( mgr->head_free )
 	{
+#if 1
+		/* adjust the new node in the queue, make sure it is the ordered-queue */
+		int _insert = 0;
 		head = &mgr->head_free->free_queue;
 		q = head;
-		tmpq = head;
+
 		while( q->next != head )
 		{
-			if( ((mem_node_t*)q)->size > mnode->size )
+			if( ((mem_node_t *)q != dstm ) && 
+				((mem_node_t *)q)->size > dstm->size )
+			{
+				_insert = 1;
+				queue_in(q->next, &dstm->free_queue);
+				if( mgr->head_free->size > dstm->size )
+					mgr->head_free = dstm;
+
 				break;
+			}
 
 			q = q->next;
 		}
-		queue_in(q, &mnode->free_queue);
 
-#if 0
-		if( mgr->head_free->size > mnode->size )
-			mgr->head_free = mnode;
+		if( _insert == 0 )
+		{
+			queue_in(head->next, &dstm->free_queue);
+			if( mgr->head_free->size > dstm->size )
+				mgr->head_free = dstm;
+		}
+#else
+		queue_in(&mgr->head_free->free_queue, &dstm->free_queue);
 #endif
-
 	}else{
-		mgr->head_free = mnode;
-		queue_init(&mnode->free_queue);
+		mgr->head_free = dstm;
+		queue_init(&dstm->free_queue);
 	}
 
-OUT:
 	return;
 }
 
-/* golable function */
+/* global function */
 mem_mgr_t *mem_init(void *ptr, int size)
 {
 	mem_mgr_t *mgr = NULL;
@@ -237,7 +258,7 @@ mem_mgr_t *mem_init(void *ptr, int size)
 	mgr = (mem_mgr_t *)ptr;
 
 	mgr->total_size = SIZE(size);
-	mgr->free_size = SIZE(size) - sizeof(mem_mgr_t) - 2 * sizeof(mem_node_t);
+	mgr->free_size = SIZE(size) - sizeof(mem_mgr_t) - 1 * sizeof(mem_node_t);
 	mgr->alocate_size = 0;
 	mgr->head_dirty = NULL;
 	mgr->head_free = NULL;
@@ -266,9 +287,12 @@ int mem_deinit(mem_mgr_t *mgr)
 		do{
 			tmp = (mem_node_t*)q;
 #ifdef DEBUG
-			printf("MEM_LEAK AT:[%s][%s][%d] size=%d (0x%x) ptr=%p\n", tmp->file_name, tmp->func_name, tmp->line_num, tmp->size, tmp->size, tmp->data );
+			printf("MEM_LEAK AT:[%s][%s][%d] size=%d (0x%x) ptr=%p\n", 
+					tmp->file_name, tmp->func_name, tmp->line_num, 
+					tmp->size, tmp->size, tmp->data );
 #else
-			printf("MEM_LEAK AT:size=%d (0x%x) ptr=%p\n", tmp->size, tmp->size, tmp->data );
+			printf("MEM_LEAK AT:size=%d (0x%x) ptr=%p\n", 
+					tmp->size, tmp->size, tmp->data );
 #endif
 			q = q->next;
 		}while( q != head );
@@ -285,7 +309,6 @@ void *mem_malloc(mem_mgr_t *mgr, int size)
 #endif
 {
 	/* first fit */
-
 	queue_t *q, *head;
 	mem_node_t *mnode, *newnode;
 	unsigned char *ptr;
@@ -306,7 +329,7 @@ void *mem_malloc(mem_mgr_t *mgr, int size)
 
 	while( q->next != head )
 	{
-		if( ((mem_node_t*)q)->size < size )
+		if( ((mem_node_t*)q)->size < size + sizeof(mem_node_t) )
 			q = q->next;
 		else
 			break;
@@ -318,7 +341,7 @@ void *mem_malloc(mem_mgr_t *mgr, int size)
 #endif
 	{
 		mnode = (mem_node_t*)q;
-		if( mnode->size < size )
+		if( mnode->size < size + sizeof(mem_node_t))
 		{
 			/* need do some process, make them compatch, then re-check */
 			return NULL;
@@ -326,7 +349,7 @@ void *mem_malloc(mem_mgr_t *mgr, int size)
 	}
 
 	/* allocate & init newnode */
-	ptr = (unsigned char*)mnode->data + mnode->size - size;
+	ptr = (unsigned char*)mnode->data + mnode->size - size - sizeof(mem_node_t);
 	newnode = memnode_alloc(ptr, size);
 	newnode->type = MEMNODE_DIRTY;
 	newnode->seal = SEAL_2;
@@ -370,41 +393,40 @@ int mem_free(mem_mgr_t *mgr, void *ptr)
 #endif
 {
 	/* get the memnode */
-#if 0
-	mem_node_t *mnode = ele_to_strut_point(ptr, data, mem_node_t);
-	mem_node_t *mnode = (mem_node_t*)((unsigned char*)ptr - (int)&(((mem_node_t*)0)->data) );
+#if 1
+	mem_node_t *mnode = data_to_memnode(ptr);
+#elif 0
+	/* 
+	mem_node_t *mnode = (mem_node_t*)((unsigned char*)ptr - (int)&(((mem_node_t*)0)->data) - 4 );
+	*/
 #else
 	mem_node_t *mnode = (mem_node_t*)((unsigned char*)ptr - sizeof(mem_node_t));
 #endif
-	printf("ptr=%p mnode = %p\n", ptr, mnode);
+	//printf("ptr=%p mnode = %p\n", ptr, mnode);
 	/* check if in the dirty queue */
-	{
-		/* error occured */
-		if( mgr->head_dirty == NULL )
-			return -1;
-
+	/* error occured */
+	if( mgr->head_dirty == NULL )
+		return -1;
+	else{
+		queue_t *q;
+		queue_t *head = &mgr->head_dirty->dirty_queue;
+		q = head;
+		while( q->next != head )
 		{
-			queue_t *q;
-			queue_t *head = &mgr->head_dirty->dirty_queue;
-			q = head;
-			while( q->next != head )
+			if( (mem_node_t*)q == mnode )
 			{
-				if( (mem_node_t*)q == mnode )
-				{
-					break;
-				}
-
-				q = q->next;
+				break;
 			}
 
-			if( (mem_node_t *)q != mnode )
-				return -1;
+			q = q->next;
 		}
+
+		if( (mem_node_t *)q != mnode )
+			return -1;
 	}
 
 	/* move queue from dirty_queue to free_queue  */
 	memnode_dirty_to_free(mgr, mnode);
-OUT:
 	return 0;
 }
 
@@ -436,9 +458,14 @@ void mem_print(mem_mgr_t *mgr)
 			do{
 				tmp = (mem_node_t*)q;
 #ifdef DEBUG
-				printf("*[%s][%s][%d] size=%d (0x%x) ptr=%p\n", tmp->file_name, tmp->func_name, tmp->line_num, tmp->size, tmp->size, tmp->data );
+				printf("*[%s][%s][%d] size=%d (0x%x) ptr=%p  start=%p end=%p\n", 
+						tmp->file_name, tmp->func_name, tmp->line_num, tmp->size, 
+						tmp->size, tmp->data ,
+						tmp, (unsigned char *)tmp->data + tmp->size);
 #else
-				printf("*\tsize=%d (0x%x) ptr=%p\n", tmp->size, tmp->size, tmp->data );
+				printf("*\tsize=%d (0x%x) ptr=%p  start=%p end=%p\n", 
+						tmp->size, tmp->size, tmp->data,
+						tmp, (unsigned char *)tmp->data + tmp->size);
 #endif
 				q = q->next;
 			}while( q != head );
@@ -456,7 +483,9 @@ void mem_print(mem_mgr_t *mgr)
 			q = head;
 			do{
 				tmp = (mem_node_t*)q;
-				printf("*\tsize=%d (0x%x) ptr=%p\n", tmp->size, tmp->size, tmp->data );
+				printf("*\tsize=%d (0x%x) ptr=%p start=%p end=%p\n",
+						tmp->size, tmp->size, tmp->data,
+						tmp, (unsigned char *)tmp->data + tmp->size);
 
 				q = q->next;
 			}while( q != head );

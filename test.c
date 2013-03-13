@@ -38,6 +38,10 @@ static int test_malloc(int len)
 		{
 			return i;
 		}
+#if 0
+			mem_print(mgr);
+			getchar();
+#endif
 	}
 
 	return i;
@@ -57,7 +61,9 @@ static int test_free(int num)
 				printf("test_free:ptr[%d] = %p error\n", i, ptr[i]);
 			}
 			mem_print(mgr);
+#if 0
 			getchar();
+#endif
 		}
 	}
 
@@ -87,11 +93,11 @@ int main(void)
 	//	mem_dump(mgr);
 	}
 
-	FREE(mgr, ptr[0]);
+	FREE(mgr, ptr[1]);
 	mem_print(mgr);
 	getchar();
 
-	FREE(mgr, ptr[1]);
+	FREE(mgr, ptr[3]);
 	mem_print(mgr);
 	getchar();
 
