@@ -30,7 +30,7 @@ static int test_malloc(int len)
 	int i = 0;
 	for( ; i < sizeof(ptr) / sizeof(ptr[0]); i++)
 	{
-		ptr[i] = MALLOC(mgr, len);
+		ptr[i] = (char *)MALLOC(mgr, len);
 
 		len += 10;
 
@@ -74,7 +74,7 @@ int main(void)
 {
 	int num = 0;
 	char *_ptr;
-	_ptr = malloc(4096);
+	_ptr = (char *)malloc(4096);
 	mgr = mem_init(_ptr, 1024);
 
 	mem_print(mgr);

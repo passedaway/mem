@@ -61,7 +61,6 @@ typedef struct mem_node_s {
 #define set_node_data(mnode)	(mnode)->data =  (unsigned char *)(mnode) + sizeof(mem_node_t)
 #endif
 
-#define SIZE(size)	((size+3) & (~0x3))
 
 struct mem_mgr_s {
 	int total_size;/*  total size != free_size + alocate_size , because the struct */
@@ -252,7 +251,7 @@ mem_mgr_t *mem_init(void *ptr, int size)
 {
 	mem_mgr_t *mgr = NULL;
 
-	if( ptr == NULL || (size <= (sizeof(mem_mgr_t) + 512)) )
+	if( ptr == NULL || ((unsigned int)size <= (sizeof(mem_mgr_t) + 512)) )
 		return NULL;
 
 	mgr = (mem_mgr_t *)ptr;

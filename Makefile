@@ -1,7 +1,7 @@
 CFG_DEBUG ?= 1
 
 #CFLAGS 
-CC ?= gcc
+CC ?= g++
 
 OBJS = mem.o test.o
 
@@ -13,7 +13,7 @@ all:$(OBJS)
 	@echo "[ LD $^ --> test.out	]"
 	@$(CC) $^ -o test.out
 
-$(filter %.o,$(OBJS)):%.o:%.c
+$(filter %.o,$(OBJS)):%.o:%.cpp
 	@echo "[ CC $^	--> $@	]"
 	@$(CC) -c $(CFLAGS) $^ -o $@
 
