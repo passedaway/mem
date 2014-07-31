@@ -90,6 +90,9 @@ static inline void queue_out(queue_t *e)
 	e->next->prev = e->prev;
 }
 
+//2014-06-26 13:50:44
+static mem_mgr_t *g_mgr = NULL;
+
 static inline mem_node_t *memnode_alloc(void *ptr, int size)
 {
 	mem_node_t *mnode = (mem_node_t*)ptr;
@@ -168,17 +171,23 @@ static void memnode_dirty_to_free(mem_mgr_t *mgr, mem_node_t *mnode)
 COMPRESS:
 	result_tail = (int)dstm;
 	result_head = (int)dstm->data + dstm->size;
+#if 0
 	printf("result_tail = 0x%x result_head = 0x%x \n", result_tail, result_head);
+#endif
 
 	head = &mgr->head_free->free_queue;
 	q = head;
 	do{
 		tmpm = (mem_node_t*)q;
+#if 0
 		printf("size + data = 0x%x tmpm=0x%x\n", tmpm->size + (int)tmpm->data, (int)tmpm);
+#endif
 		if( (tmpm->size + (int)tmpm->data) == result_tail )
 		{ 
 			/* combine (other's tail) */
+#if 0
 			printf("combine to other's tail ptr=%p size=%d\n", tmpm->data, tmpm->size);
+#endif
 			tmpm->size += ( dstm->size + sizeof(mem_node_t) );
 			mgr->free_size += sizeof(mem_node_t);
 			dstm = tmpm;
@@ -190,7 +199,9 @@ COMPRESS:
 		if( (int)tmpm == result_head )
 		{
 			/* combine (other's head) */
+#if 0
 			printf("combine to other's head ptr=%p size=%d\n", tmpm->data, tmpm->size);
+#endif
 			dstm->size += (tmpm->size + sizeof(mem_node_t));
 			mgr->free_size += sizeof(mem_node_t);
 
@@ -268,13 +279,23 @@ mem_mgr_t *mem_init(void *ptr, int size)
 	mgr->head_free->type = MEMNODE_FREE;
 	queue_init(&mgr->head_free->free_queue);
 
+	//2014-06-26 13:51:38 
+	g_mgr = mgr;
+
 	return (mgr->head_free)?mgr:NULL;
 }
 
 int mem_deinit(mem_mgr_t *mgr)
 {
+	//2014-06-26 13:51:49 
+	if( mgr == NULL )
+		mgr = g_mgr;
+
 	if( mgr == NULL )
 		return -1;
+
+	//2014-06-26 13:57:00
+	g_mgr = NULL;
 
 	/* check if has leak */
 	if( mgr->head_dirty != NULL )
@@ -312,6 +333,10 @@ void *mem_malloc(mem_mgr_t *mgr, int size)
 	queue_t *q, *head;
 	mem_node_t *mnode, *newnode;
 	unsigned char *ptr;
+
+	//2014-06-26 13:52:15 
+	if( mgr == NULL )
+		mgr = g_mgr;
 
 	if( (size <= 0) || (mgr == NULL) )
 		return NULL;
@@ -387,9 +412,9 @@ void *mem_malloc(mem_mgr_t *mgr, int size)
 }
 
 #ifdef DEBUG
-int mem_free(const char *file_name, const char *func_name, const int line, mem_mgr_t *mgr, void *ptr)
+void mem_free(const char *file_name, const char *func_name, const int line, mem_mgr_t *mgr, void *ptr)
 #else
-int mem_free(mem_mgr_t *mgr, void *ptr)
+void mem_free(mem_mgr_t *mgr, void *ptr)
 #endif
 {
 	/* get the memnode */
@@ -405,8 +430,16 @@ int mem_free(mem_mgr_t *mgr, void *ptr)
 	//printf("ptr=%p mnode = %p\n", ptr, mnode);
 	/* check if in the dirty queue */
 	/* error occured */
+
+	//2014-06-26 13:52:15 
+	if( mgr == NULL )
+		mgr = g_mgr;
+
+	if( !mgr )
+		return ;
+
 	if( mgr->head_dirty == NULL )
-		return -1;
+		return ;
 	else{
 		queue_t *q;
 		queue_t *head = &mgr->head_dirty->dirty_queue;
@@ -422,12 +455,12 @@ int mem_free(mem_mgr_t *mgr, void *ptr)
 		}
 
 		if( (mem_node_t *)q != mnode )
-			return -1;
+			return ;
 	}
 
 	/* move queue from dirty_queue to free_queue  */
 	memnode_dirty_to_free(mgr, mnode);
-	return 0;
+	return;
 }
 
 void mem_print(mem_mgr_t *mgr)

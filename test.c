@@ -50,16 +50,11 @@ static int test_malloc(int len)
 static int test_free(int num)
 {
 	int i = 0;
-	int ret = 0;
 	for(; i < num; i++)
 	{
 	//	if( ptr[i] )
 		{
-			ret = FREE(mgr, ptr[i]);
-			if( ret )
-			{
-				printf("test_free:ptr[%d] = %p error\n", i, ptr[i]);
-			}
+			FREE(mgr, ptr[i]);
 			mem_print(mgr);
 #if 0
 			getchar();
